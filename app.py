@@ -10,90 +10,137 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🚀 Marketing Funnel & Conversion Analytics")
+# ================= DARK MODE STYLE =================
+st.markdown("""
+<style>
 
+html, body, [class*="css"] {
+    background-color:#0b0f1a;
+    color:white;
+}
+
+.metric-card{
+background:linear-gradient(135deg,#1f2937,#111827);
+padding:20px;
+border-radius:12px;
+text-align:center;
+}
+
+.metric-title{
+color:#9ca3af;
+}
+
+.metric-value{
+font-size:28px;
+font-weight:bold;
+color:#22c55e;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+st.title("🚀 Marketing Funnel & Conversion Intelligence")
+
+# ================= LOAD DATA =================
 df = load_data()
 
-# Sidebar Filters
-st.sidebar.header("Filters")
+# ================= TOP FILTER BAR =================
+st.markdown("### Dashboard Filters")
 
-channel = st.sidebar.selectbox(
-    "Contact Channel",
-    ["All"] + list(df["contact"].unique())
-)
+f1, f2 = st.columns(2)
 
-if channel != "All":
-    df = df[df["contact"]==channel]
+with f1:
+    channel = st.multiselect(
+        "Contact Channel",
+        df["contact"].unique(),
+        default=df["contact"].unique()
+    )
 
-# KPIs
+with f2:
+    campaign = st.slider(
+        "Campaign Range",
+        int(df["campaign"].min()),
+        int(df["campaign"].max()),
+        (int(df["campaign"].min()), int(df["campaign"].max()))
+    )
+
+# ================= APPLY FILTERS =================
+df = df[
+(df["contact"].isin(channel)) &
+(df["campaign"] >= campaign[0]) &
+(df["campaign"] <= campaign[1])
+]
+
+# ================= KPI METRICS =================
 visitors, leads, customers, v_l, l_c, overall = funnel_metrics(df)
 
-col1,col2,col3 = st.columns(3)
+k1,k2,k3 = st.columns(3)
 
-col1.metric("Visitors", visitors)
-col2.metric("Leads", leads)
-col3.metric("Customers", customers)
+k1.metric("Visitors", visitors)
+k2.metric("Leads", leads)
+k3.metric("Customers", customers)
 
-st.markdown("---")
+k4,k5,k6 = st.columns(3)
 
-col4,col5,col6 = st.columns(3)
+k4.metric("Visitor → Lead %", v_l)
+k5.metric("Lead → Customer %", l_c)
+k6.metric("Overall Conversion %", overall)
 
-col4.metric("Visitor → Lead %", v_l)
-col5.metric("Lead → Customer %", l_c)
-col6.metric("Overall Conversion %", overall)
+st.divider()
 
-st.markdown("---")
-
-# Funnel
+# ================= FUNNEL =================
 st.subheader("Marketing Funnel")
 
 funnel = dropoff_data(df)
 
-st.plotly_chart(
-    funnel_chart(funnel),
-    use_container_width=True
-)
+fig_funnel = funnel_chart(funnel)
+fig_funnel.update_layout(template="plotly_dark")
 
-st.markdown("---")
+st.plotly_chart(fig_funnel, use_container_width=True)
 
-# Channel Analysis
-st.subheader("Channel Performance")
+st.divider()
 
-channel_perf = channel_performance(df)
+# ================= CHANNEL + CAMPAIGN =================
+col1, col2 = st.columns(2)
 
-st.plotly_chart(
-    channel_chart(channel_perf),
-    use_container_width=True
-)
+with col1:
 
-st.markdown("---")
+    st.subheader("Channel Performance")
 
-# Campaign Analysis
-st.subheader("Campaign Conversion")
+    channel_perf = channel_performance(df)
 
-campaign_perf = campaign_performance(df)
+    fig_channel = channel_chart(channel_perf)
+    fig_channel.update_layout(template="plotly_dark")
 
-st.plotly_chart(
-    campaign_chart(campaign_perf),
-    use_container_width=True
-)
+    st.plotly_chart(fig_channel, use_container_width=True)
 
-st.markdown("---")
+with col2:
 
-# Conversion Trend
+    st.subheader("Campaign Conversion")
+
+    campaign_perf = campaign_performance(df)
+
+    fig_campaign = campaign_chart(campaign_perf)
+    fig_campaign.update_layout(template="plotly_dark")
+
+    st.plotly_chart(fig_campaign, use_container_width=True)
+
+st.divider()
+
+# ================= TREND =================
 st.subheader("Monthly Conversion Trend")
 
 trend = monthly_conversion(df)
 
-st.plotly_chart(
-    conversion_trend(trend),
-    use_container_width=True
-)
+fig_trend = conversion_trend(trend)
+fig_trend.update_layout(template="plotly_dark")
 
-st.markdown("---")
+st.plotly_chart(fig_trend, use_container_width=True)
 
-# ML Model
-st.subheader("Lead Conversion Prediction Model")
+st.divider()
+
+# ================= ML MODEL =================
+st.subheader("🤖 Lead Conversion Prediction Model")
 
 model, accuracy, importance = train_lead_model(df)
 
@@ -103,24 +150,27 @@ st.metric("Model Accuracy", str(round(accuracy*100,2))+"%")
 
 st.markdown("### Feature Importance")
 
-st.bar_chart(
-    importance.set_index("Feature")
-)
+st.bar_chart(importance.set_index("Feature"))
 
-st.markdown("---")
+st.divider()
 
-st.subheader("Key Insights")
+# ================= INSIGHTS =================
+st.subheader("📌 Key Insights")
 
-st.write("• Large drop-off occurs at Visitor → Lead stage.")
+st.markdown("""
+• Large drop-off occurs at **Visitor → Lead stage**
 
-st.write("• Certain contact channels convert significantly better.")
+• Some **contact channels convert significantly better**
 
-st.write("• Campaign frequency influences conversion probability.")
+• Campaign frequency influences **conversion probability**
+""")
 
-st.subheader("Recommendations")
+st.subheader("🚀 Recommendations")
 
-st.write("• Improve landing page lead capture.")
+st.markdown("""
+• Improve landing page lead capture
 
-st.write("• Focus marketing budget on high converting channels.")
+• Invest more budget in high-performing channels
 
-st.write("• Optimize campaigns with low performance.")
+• Optimize campaigns with low conversion rates
+""")
